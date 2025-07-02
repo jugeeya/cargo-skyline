@@ -73,8 +73,12 @@ fn get_original_toolchain(
             if let octocrab::Error::GitHub {
                 source,
                 backtrace: _,
-            } = oct_err {
-                base_nightly_progress.finish_with_message(format!("Failed to get find base nightly: {}", source.message))
+            } = oct_err
+            {
+                base_nightly_progress.finish_with_message(format!(
+                    "Failed to get find base nightly: {}",
+                    source.message
+                ))
             }
         } else {
             base_nightly_progress.finish_with_message("Failed to get find base nightly");
@@ -224,12 +228,15 @@ fn target_json() -> String {
 
 pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
     let multiprogress = MultiProgress::new();
-    let style =
-        ProgressStyle::default_spinner().template("{prefix:.bold.dim} {spinner} {wide_msg}");
-    let finished_style =
-        ProgressStyle::default_spinner().template("{prefix:.bold.dim} ✔️ {wide_msg}");
-    let failed_style =
-        ProgressStyle::default_spinner().template("{prefix:.bold.dim} ❌ {wide_msg}");
+    let style = ProgressStyle::default_spinner()
+        .template("{prefix:.bold.dim} {spinner} {wide_msg}")
+        .map_err(|_| Error::DownloadError)?;
+    let finished_style = ProgressStyle::default_spinner()
+        .template("{prefix:.bold.dim} ✔️ {wide_msg}")
+        .map_err(|_| Error::DownloadError)?;
+    let failed_style = ProgressStyle::default_spinner()
+        .template("{prefix:.bold.dim} ❌ {wide_msg}")
+        .map_err(|_| Error::DownloadError)?;
 
     let get_base_nightly_pb = multiprogress.add(
         ProgressBar::new_spinner()
@@ -251,8 +258,6 @@ pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
             .with_prefix("[3/3]")
             .with_style(style),
     );
-
-    std::thread::spawn(move || multiprogress.join());
 
     let toolchain = get_toolchain();
 
@@ -320,9 +325,9 @@ pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
     };
 
     std_clone_pb.set_style(if clone_status.success() {
-        finished_style
+        finished_style.clone()
     } else {
-        failed_style
+        failed_style.clone()
     });
     std_clone_pb.finish_with_message(if clone_status.success() {
         "Finished downloading custom Rust standard library"
